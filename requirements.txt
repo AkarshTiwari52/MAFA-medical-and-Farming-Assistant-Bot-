@@ -1,0 +1,15 @@
+flask
+flask-cors
+
+langchain
+langchain-core
+langchain-community
+langgraph
+
+langchain-groq
+groq
+
+tavily-python
+
+python-dotenv
+uuid
