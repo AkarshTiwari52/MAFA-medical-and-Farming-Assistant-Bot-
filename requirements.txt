@@ -1,26 +1,30 @@
-# Web
-flask==3.0.3
-python-dotenv==1.0.1
+# Web Framework & Core
+flask>=3.0.0
+gunicorn>=21.2.0
 
-# LangChain core
-langchain==0.2.16
-langchain-community==0.2.16
-langchain-groq==0.1.6
-langchain-huggingface==0.0.3
+# LangChain Ecosystem
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.1.0
+langchain-experimental>=0.1.0
 
-# LangGraph memory
-langgraph==0.1.19
+# Model Provider Integration
+langchain-groq>=0.1.0
+langchain-huggingface>=0.1.0
 
-# Embeddings
-sentence-transformers==2.7.0
-transformers==4.41.2
-torch==2.2.2
+# Vector Storage & Search
+faiss-cpu>=1.7.4
+sentence-transformers>=2.2.2
 
-# Vector DB (FAISS)
-faiss-cpu==1.7.4
+# Agent Orchestration & Orchestrator Tools
+langgraph>=0.0.10
+tavily-python>=0.3.0
 
-# PDF
-pypdf==4.2.0
+# Data Manipulation & Formats
+pandas>=2.0.0
+numpy>=1.24.0
 
-# Web search
-tavily-python==0.3.3
+# File Formats & Exporters (CSV to PDF)
+reportlab>=4.1.0
+weasyprint>=61.0
+pypdf>=4.0.0
