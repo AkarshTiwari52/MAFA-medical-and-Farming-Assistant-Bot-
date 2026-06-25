@@ -1,5 +1,6 @@
-# Web framework
+# Web
 flask==3.0.3
+python-dotenv==1.0.1
 
 # LangChain core
 langchain==0.2.16
@@ -7,23 +8,19 @@ langchain-community==0.2.16
 langchain-groq==0.1.6
 langchain-huggingface==0.0.3
 
-# LangGraph (memory)
+# LangGraph memory
 langgraph==0.1.19
 
-# Embeddings + ML
+# Embeddings
 sentence-transformers==2.7.0
 transformers==4.41.2
-torch>=2.0.0
+torch==2.2.2
 
-# Vector DB
-faiss-cpu==1.8.0
+# Vector DB (FAISS)
+faiss-cpu==1.7.4
 
-# PDF loading
+# PDF
 pypdf==4.2.0
 
-# Web search tool
+# Web search
 tavily-python==0.3.3
-
-# Utilities
-python-dotenv==1.0.1
-uuid==1.30
