@@ -1,5 +1,9 @@
 from flask import Flask, render_template, request, jsonify
 import os, uuid
+from langchain_community.document_loaders import PyPDFLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.vectorstores import FAISS
 
 from langchain_groq import ChatGroq
 from langchain.messages import HumanMessage
@@ -16,7 +20,7 @@ app = Flask(__name__)
 
 from langchain.tools import tool
 
-tavily_client = TavilyClient()
+tavily_client = TavilyClient(api_key=os.environ.get("TAVILY_API_KEY"))
 
 @tool
 def search_from_web(query: str) -> str:
@@ -126,9 +130,9 @@ Your mission is to act as a **trusted assistant** that:
 
 
 ##memeory
+
 from langgraph.checkpoint.memory import MemorySaver
 
-#memory = SqliteSaver.from_conn_string("memory.db")
 memory = MemorySaver()
 
 
@@ -140,19 +144,64 @@ memory = MemorySaver()
 
 
 model = ChatGroq(
-    model="llama-3.1-8b-instant",
+    model="llama-3.3-70b-versatile",
     temperature=0.4
 )
 
 
 agents = create_agent(
-    model = model ,
+    model = model,
     tools = [search_from_web],
     system_prompt = base_prompt,
-    checkpointer = memory
+    checkpointer=memory
 )
 
+## rag system
 
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+
+db = FAISS.load_local(
+    "saved_models/FAISS_index",
+     embeddings,
+     allow_dangerous_deserialization=True
+     )
+
+retriever = db.as_retriever(search_kwargs={"k": 3})
+
+## prompt building
+def get_relevant_context(user_message):
+    docs = retriever.invoke(user_message)
+
+    if not docs:
+        return None
+
+    # keep context short (token-safe)
+    return "\n\n".join(doc.page_content[:400] for doc in docs)
+
+def rag_prompt(user_message, context, language):
+    return f"""
+You are MAFA (Medical And Farming Assistant).
+
+LANGUAGE RULE:
+You MUST reply in {language}.
+You fully understand English, Hindi, and Hinglish.
+
+SAFETY:
+- No medical diagnosis
+- No prescriptions
+- General guidance only
+
+Use the context ONLY if it helps answer the question.
+If context is insufficient, say you are not sure.
+
+Context:
+{context}
+
+User:
+{user_message}
+"""
+
+    
 # Routes
 @app.route("/")
 def index():
@@ -171,28 +220,38 @@ def chat():
         return jsonify({"reply": "Please ask a valid question 🌱"})
 
     try:
+        context = get_relevant_context(user_message)
+
+        # 🔹 CASE 1: Normal chatbot (small talk, greetings)
+        if context is None:
+            response = agents.invoke(
+                {
+                    "messages": [
+                        HumanMessage(
+                            content=f"Reply casually in {language}: {user_message}"
+                        )
+                    ]
+                },
+                config={"configurable": {"thread_id": thread_id}}
+            )
+
+            bot_reply = response["messages"][-1].content
+            return jsonify({"reply": bot_reply, "thread_id": thread_id})
+
+        # 🔹 CASE 2: RAG chatbot
+        final_prompt = rag_prompt(user_message, context, language)
+
         response = agents.invoke(
             {
                 "messages": [
-                    HumanMessage(
-                        content=f"Reply in {language}. {user_message}"
-                    )
+                    HumanMessage(content=final_prompt)
                 ]
             },
-            config={
-                "configurable": {
-                    "thread_id": thread_id
-                }
-            }
+            config={"configurable": {"thread_id": thread_id}}
         )
 
-        # ✅ extract last AI message
         bot_reply = response["messages"][-1].content
-
-        return jsonify({
-            "reply": bot_reply,
-            "thread_id": thread_id
-        })
+        return jsonify({"reply": bot_reply, "thread_id": thread_id})
 
     except Exception as e:
         print("ERROR:", e)
@@ -200,7 +259,6 @@ def chat():
     
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 1000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(debug=True)
 
     
